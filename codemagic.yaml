@@ -9,12 +9,6 @@ workflows:
         XCODE_WORKSPACE: "ios/YourApp.xcworkspace"
         XCODE_SCHEME: "YourApp"
 
-    code_signing:
-      provisioning_profiles:
-        $XCODE_SCHEME: $APPLE_PROVISIONING_PROFILE_PATH
-      certificate: $APPLE_CERTIFICATE_PATH
-      certificate_password: $APPLE_CERTIFICATE_PASSWORD
-
     scripts:
       - name: Checkout code
         script: git clone $CM_REPO_URL .
@@ -30,6 +24,17 @@ workflows:
           cd ios
           pod install
 
+      - name: Set up Code Signing
+        script: |
+          security create-keychain -p "" build.keychain
+          security import $APPLE_CERTIFICATE_PATH -k build.keychain -P $APPLE_CERTIFICATE_PASSWORD -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $APPLE_PROVISIONING_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+
       - name: Build iOS App
         script: |
           xcodebuild clean archive \
@@ -37,7 +42,10 @@ workflows:
           -scheme $XCODE_SCHEME \
           -sdk iphoneos \
           -configuration Release \
-          -archivePath $CM_BUILD_DIR/YourApp.xcarchive
+          -archivePath $CM_BUILD_DIR/YourApp.xcarchive \
+          CODE_SIGN_STYLE=Manual \
+          PROVISIONING_PROFILE_SPECIFIER="" \
+          CODE_SIGN_IDENTITY="Apple Distribution"
 
       - name: Export IPA
         script: |
