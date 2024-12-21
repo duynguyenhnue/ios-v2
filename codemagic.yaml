@@ -10,13 +10,10 @@ workflows:
         XCODE_SCHEME: "YourApp"
 
     ios_signing:
-      manual:
-        provisioning_profiles:
-          - "YourApp_Profile.mobileprovision"
-        certificates:
-          - certificate_path: "certs/YourAppCertificate.p12"
-            password: $APPLE_CERTIFICATE_PASSWORD
-
+      certificate: $APPLE_CERTIFICATE_PATH
+      provisioning_profile: $APPLE_PROVISIONING_PROFILE_PATH
+      signing_identity: "iPhone Developer"  # or "Apple Distribution"
+      
     scripts:
       - name: Checkout code
         script: git clone $CM_REPO_URL .
