@@ -1,80 +1,31 @@
 workflows:
-  ios-build:
-    name: iOS Build (React Native)
-    instance_type: mac_mini_m1  # Use a Mac Mini with M1 for iOS builds (faster builds)
-    max_build_duration: 60  # Max duration in minutes
-
+  build_ios:
+    name: Build iOS without Apple Account
     environment:
       vars:
-        # iOS Settings
-        XCODE_WORKSPACE: "ios/YourApp.xcworkspace"  # Update 'YourApp' with the actual name of your .xcworkspace file
-        XCODE_SCHEME: "YourApp"  # Update with the name of the scheme you're using in Xcode
-        EXPORT_METHOD: app-store  # Options: app-store, ad-hoc, development, enterprise
-
-      node: 16.20.0  # Ensure compatibility with your React Native version
-      ruby: 3.1.0  # Required for CocoaPods
-      flutter: none  # Disable Flutter for this build
-      xcode: latest  # Use the latest available version of Xcode
-
+        NODE_VERSION: 18 # Sử dụng Node.js 18
+      xcode: latest
+      cocoapods: default
     scripts:
-      # Step 1: Install Dependencies
-      - name: Install Node.js and project dependencies
+      - name: Cài đặt Node.js phiên bản 18
         script: |
-          echo "Installing Node.js dependencies..."
-          npm install -g yarn  # Install Yarn if not already available
-          yarn install         # Install dependencies from package.json
-
-      # Step 2: Install CocoaPods
-      - name: Install CocoaPods
+          nvm install 18
+          nvm use 18
+      - name: Cài đặt dependencies
         script: |
-          echo "Installing Cocoapods dependencies..."
-          sudo gem install cocoapods --pre  # Install/Update CocoaPods
-          cd ios                           # Navigate to the 'ios' folder
-          pod install                      # Install Pods for iOS project
-
-      # Step 3: Set Up Code Signing
-      - name: Set up Code Signing
+          brew install yarn
+          yarn install
+      - name: Cài đặt Pods
         script: |
-          echo "Setting up code signing certificates..."
-          security create-keychain -p "" build.keychain
-          security import $APPLE_CERTIFICATE_PATH -k build.keychain -P $APPLE_CERTIFICATE_PASSWORD -T /usr/bin/codesign
-          security list-keychains -s build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $APPLE_PROVISIONING_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
-
-      # Step 4: Archive the iOS App
-      - name: Build iOS Application
+          cd ios
+          pod install
+          cd ..
+      - name: Build iOS app (Simulator only)
         script: |
-          echo "Archiving the iOS application..."
-          xcodebuild clean archive \
-            -workspace $XCODE_WORKSPACE \
-            -scheme $XCODE_SCHEME \
-            -sdk iphoneos \
-            -configuration Release \
-            -archivePath $CM_BUILD_DIR/YourApp.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
-
-      # Step 5: Export IPA
-      - name: Export IPA file
-        script: |
-          echo "Exporting the .ipa file for distribution..."
-          xcodebuild -exportArchive \
-            -archivePath $CM_BUILD_DIR/YourApp.xcarchive \
-            -exportPath $CM_BUILD_DIR/build/ \
-            -exportOptionsPlist ios/exportOptions.plist
-
+          xcodebuild -workspace ios/MyApp.xcworkspace \
+          -scheme MyApp \
+          -sdk iphonesimulator \
+          -configuration Release \
+          -derivedDataPath build
     artifacts:
-      # Save the built IPA and logs as artifacts for distribution or debugging
-      - build/**/*.ipa  # iOS built .ipa file
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app  # App bundle
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult  # Test results
-
-    publishing:
-      email:
-        recipients:
-          - example-email@example.com  # Replace with your email for build notifications
+      - build/**/*.app
