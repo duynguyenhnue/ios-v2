@@ -9,11 +9,12 @@ workflows:
         XCODE_WORKSPACE: "ios/YourApp.xcworkspace"
         XCODE_SCHEME: "YourApp"
 
-    ios_signing:
+    code_signing:
+      provisioning_profiles:
+        $XCODE_SCHEME: $APPLE_PROVISIONING_PROFILE_PATH
       certificate: $APPLE_CERTIFICATE_PATH
-      provisioning_profile: $APPLE_PROVISIONING_PROFILE_PATH
-      signing_identity: "iPhone Developer"  # or "Apple Distribution"
-      
+      certificate_password: $APPLE_CERTIFICATE_PASSWORD
+
     scripts:
       - name: Checkout code
         script: git clone $CM_REPO_URL .
