@@ -10,9 +10,6 @@ workflows:
         XCODE_SCHEME: "YourApp"
 
     scripts:
-      - name: Checkout code
-        script: git clone $CM_REPO_URL .
-
       - name: Set up Node.js and dependencies
         script: |
           brew install node
