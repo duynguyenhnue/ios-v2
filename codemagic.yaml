@@ -16,8 +16,8 @@ workflows:
           cd ..
       - name: Build iOS app (Simulator only)
         script: |
-          xcodebuild -workspace ios/MyApp.xcworkspace \
-          -scheme MyApp \
+          xcodebuild -workspace ios/YourWorkspaceName.xcworkspace \
+          -scheme YourSchemeName \
           -sdk iphonesimulator \
           -configuration Release \
           -derivedDataPath build
