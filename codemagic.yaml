@@ -18,10 +18,14 @@ workflows:
 
       - name: Install Pods
         script: |
-          sudo gem install cocoapods # Update hoặc cài đặt CocoaPods
+          sudo gem install cocoapods # Update or install CocoaPods
           cd ios
-          pod repo update # Update repo Podspecs nếu cần
-          rm -rf Podfile.lock Pods # Xóa Podfile.lock và Pods
+          if [ ! -f "Podfile" ]; then
+            echo "Error: Podfile not found in the ios directory."
+            exit 1
+          fi
+          pod repo update # Optional: Update podspec repo cache
+          rm -rf Podfile.lock Pods # Clean previous Pods if they exist
           pod install
 
       - name: Set up Code Signing
