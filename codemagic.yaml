@@ -1,35 +1,41 @@
 workflows:
   ios-build:
     name: iOS Build (React Native)
-    max_build_duration: 120
-    instance_type: mac_mini_m1  # or mac_pro
+    instance_type: mac_mini_m1  # Use a Mac Mini with M1 for iOS builds (faster builds)
+    max_build_duration: 60  # Max duration in minutes
 
     environment:
       vars:
-        XCODE_WORKSPACE: "ios/YourApp.xcworkspace"
-        XCODE_SCHEME: "YourApp"
+        # iOS Settings
+        XCODE_WORKSPACE: "ios/YourApp.xcworkspace"  # Update 'YourApp' with the actual name of your .xcworkspace file
+        XCODE_SCHEME: "YourApp"  # Update with the name of the scheme you're using in Xcode
+        EXPORT_METHOD: app-store  # Options: app-store, ad-hoc, development, enterprise
+
+      node: 16.20.0  # Ensure compatibility with your React Native version
+      ruby: 3.1.0  # Required for CocoaPods
+      flutter: none  # Disable Flutter for this build
+      xcode: latest  # Use the latest available version of Xcode
 
     scripts:
-      - name: Set up Node.js and dependencies
+      # Step 1: Install Dependencies
+      - name: Install Node.js and project dependencies
         script: |
-          brew install node
-          npm install -g yarn
-          yarn install
+          echo "Installing Node.js dependencies..."
+          npm install -g yarn  # Install Yarn if not already available
+          yarn install         # Install dependencies from package.json
 
-      - name: Install Pods
+      # Step 2: Install CocoaPods
+      - name: Install CocoaPods
         script: |
-          sudo gem install cocoapods # Update or install CocoaPods
-          cd ios
-          if [ ! -f "Podfile" ]; then
-            echo "Error: Podfile not found in the ios directory."
-            exit 1
-          fi
-          pod repo update # Optional: Update podspec repo cache
-          rm -rf Podfile.lock Pods # Clean previous Pods if they exist
-          pod install
+          echo "Installing Cocoapods dependencies..."
+          sudo gem install cocoapods --pre  # Install/Update CocoaPods
+          cd ios                           # Navigate to the 'ios' folder
+          pod install                      # Install Pods for iOS project
 
+      # Step 3: Set Up Code Signing
       - name: Set up Code Signing
         script: |
+          echo "Setting up code signing certificates..."
           security create-keychain -p "" build.keychain
           security import $APPLE_CERTIFICATE_PATH -k build.keychain -P $APPLE_CERTIFICATE_PASSWORD -T /usr/bin/codesign
           security list-keychains -s build.keychain
@@ -39,31 +45,36 @@ workflows:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $APPLE_PROVISIONING_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
-      - name: Build iOS App
+      # Step 4: Archive the iOS App
+      - name: Build iOS Application
         script: |
+          echo "Archiving the iOS application..."
           xcodebuild clean archive \
-          -workspace $XCODE_WORKSPACE \
-          -scheme $XCODE_SCHEME \
-          -sdk iphoneos \
-          -configuration Release \
-          -archivePath $CM_BUILD_DIR/YourApp.xcarchive \
-          CODE_SIGN_STYLE=Manual \
-          PROVISIONING_PROFILE_SPECIFIER="" \
-          CODE_SIGN_IDENTITY="Apple Distribution"
+            -workspace $XCODE_WORKSPACE \
+            -scheme $XCODE_SCHEME \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath $CM_BUILD_DIR/YourApp.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            CODE_SIGN_IDENTITY="Apple Distribution"
 
-      - name: Export IPA
+      # Step 5: Export IPA
+      - name: Export IPA file
         script: |
+          echo "Exporting the .ipa file for distribution..."
           xcodebuild -exportArchive \
-          -archivePath $CM_BUILD_DIR/YourApp.xcarchive \
-          -exportPath $CM_BUILD_DIR/build/ \
-          -exportOptionsPlist ios/exportOptions.plist
+            -archivePath $CM_BUILD_DIR/YourApp.xcarchive \
+            -exportPath $CM_BUILD_DIR/build/ \
+            -exportOptionsPlist ios/exportOptions.plist
 
     artifacts:
-      - build/**/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+      # Save the built IPA and logs as artifacts for distribution or debugging
+      - build/**/*.ipa  # iOS built .ipa file
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app  # App bundle
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult  # Test results
 
     publishing:
       email:
         recipients:
-          - your-email@example.com
+          - example-email@example.com  # Replace with your email for build notifications
