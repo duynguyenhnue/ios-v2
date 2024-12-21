@@ -3,17 +3,13 @@ workflows:
     name: Build iOS without Apple Account
     environment:
       vars:
-        NODE_VERSION: 18 # Sử dụng Node.js 18
+        NODE_VERSION: 18 # Đặt phiên bản Node.js mong muốn
+      node: 18 # Codemagic sẽ tự động sử dụng Node.js 18
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Cài đặt Node.js phiên bản 18
-        script: |
-          nvm install 18
-          nvm use 18
       - name: Cài đặt dependencies
         script: |
-          brew install yarn
           yarn install
       - name: Cài đặt Pods
         script: |
